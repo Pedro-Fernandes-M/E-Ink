@@ -1,0 +1,37 @@
+name: Auto Increment Version
+
+# Esta regra diz ao robô para acordar APENAS quando o firmware.bin for modificado/enviado
+on:
+  push:
+    paths:
+      - 'firmware.bin'
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v3
+
+      - name: Incrementar a Versao
+        run: |
+          # 1. Lê o valor atual do version_id.txt. Se o ficheiro não existir, assume 1.00
+          CURRENT_VERSION=$(cat version_id.txt 2>/dev/null || echo "1.00")
+          
+          # 2. Soma 0.01 matematicamente (ex: 1.05 passa a 1.06) usando awk
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk '{printf "%.2f", $1 + 0.01}')
+          
+          # 3. Guarda o novo número no ficheiro
+          echo $NEW_VERSION > version_id.txt
+          echo "A versão foi atualizada de $CURRENT_VERSION para $NEW_VERSION"
+
+      - name: Guardar as alterações (Commit e Push)
+        run: |
+          # Configura a identidade do Robô
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          
+          # Envia a nova versão de volta para o repositório
+          git add version_id.txt
+          git commit -m "Autoupdate: Versão incrementada para $(cat version_id.txt)"
+          git push
